@@ -1,8 +1,8 @@
-<img src="./.assets/christmas_ferris.png" width="164">
-
 # 🎄 Advent of Code 2024
 
 Solutions for [Advent of Code](https://adventofcode.com/) in [Rust](https://www.rust-lang.org/).
+
+Repo scaffolded from [Felix Spöttel's handy template](https://github.com/fspoettel/advent-of-code-rust).
 
 ## Usage
 
