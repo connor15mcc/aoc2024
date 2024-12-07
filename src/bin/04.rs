@@ -1,3 +1,4 @@
+use grid::Grid;
 use lazy_static::lazy_static;
 use std::{
     ops::{Mul, Neg},
@@ -10,21 +11,19 @@ advent_of_code::solution!(4);
 
 #[derive(Debug)]
 struct WordSearch {
-    w: usize,
-    h: usize,
     // TODO: can I just size an array at from_str time
     // TODO: want to hit with a CPU profiler
-    grid: Vec<Vec<u8>>, // indexed by x (< h), y (< w)
+    grid: Grid<u8>, // indexed by x (< h), y (< w)
 }
 
 impl WordSearch {
     fn points(&self) -> impl Iterator<Item = Point> {
-        let (w, h) = (self.w, self.h);
+        let (w, h) = (self.grid.cols(), self.grid.rows());
         (0..h).flat_map(move |x| (0..w).map(move |y| Point { x, y }))
     }
 
-    fn get(&self, p: Point) -> Option<u8> {
-        self.grid.get(p.x).and_then(|v| v.get(p.y).copied())
+    fn get(&self, p: Point) -> Option<&u8> {
+        self.grid.get(p.x, p.y)
     }
 
     fn num_xmas(&self, p: Point) -> u32 {
@@ -34,7 +33,7 @@ impl WordSearch {
                 let xmas = "XMAS".bytes().enumerate().all(|(i, c)| {
                     let neighbor = self.get(p.offset(*dir * i as i32));
 
-                    neighbor.is_some_and(|n| n == c)
+                    neighbor.is_some_and(|&n| n == c)
                 });
 
                 if xmas {
@@ -48,7 +47,7 @@ impl WordSearch {
     fn describes_mas(&self, p: Point, dir: Offset) -> bool {
         let (m_a, s_a) = (self.get(p.offset(dir)), self.get(p.offset(-dir)));
 
-        (m_a == Some(b'M') && s_a == Some(b'S')) || (m_a == Some(b'S') && s_a == Some(b'M'))
+        (m_a == Some(&b'M') && s_a == Some(&b'S')) || (m_a == Some(&b'S') && s_a == Some(&b'M'))
     }
 
     fn is_x_mas_a(&self, p: Point) -> bool {
@@ -70,16 +69,21 @@ impl FromStr for WordSearch {
     type Err = ParseWordSearchErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let grid: Vec<Vec<_>> = s.lines().map(|l| l.bytes().collect()).collect();
+        // confine inputs to allow use of u8s
+        if !s.is_ascii() {
+            return Err(ParseWordSearchErr);
+        }
 
-        let h = grid.len();
-        let w = if let Some(v) = grid.first() {
-            v.len()
-        } else {
-            0
-        };
+        let num_cols = s.find('\n').expect("must include at least 1 linebreak");
 
-        Ok(WordSearch { w, h, grid })
+        let grid = Grid::from_vec(
+            s.lines()
+                .flat_map(|l| l.bytes().collect::<Vec<_>>())
+                .collect(),
+            num_cols,
+        );
+
+        Ok(WordSearch { grid })
     }
 }
 
